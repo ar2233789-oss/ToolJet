@@ -198,6 +198,23 @@ describe('WorkflowExecutionsController', () => {
             execution.id
           );
 
+          // Debug: log execution state in CI
+          if (process.env.CI) {
+            console.log('[CI DEBUG] execution response:', JSON.stringify({
+              id: execution.id,
+              appVersionId: execution.appVersionId,
+              executed: execution.executed,
+            }));
+            console.log('[CI DEBUG] workflowExecution.executed:', workflowExecution.executed);
+            console.log('[CI DEBUG] executionNodes count:', executionNodes.length);
+            if (executionNodes.length > 0) {
+              console.log('[CI DEBUG] first node:', JSON.stringify(executionNodes[0]));
+            }
+            console.log('[CI DEBUG] appVersion.id:', appVersion.id);
+            console.log('[CI DEBUG] appVersion.status:', (appVersion as any).status);
+            console.log('[CI DEBUG] appVersion.definition nodes count:', appVersion.definition?.nodes?.length);
+          }
+
           // Verify execution status
           expect(workflowExecution.executed).toBe(true);
           expect(execution.id).toBeDefined();
