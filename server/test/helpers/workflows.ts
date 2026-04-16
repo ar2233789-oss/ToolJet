@@ -17,6 +17,7 @@ import { AppsGroupPermissions } from '@entities/apps_group_permissions.entity';
 import { GroupUsers } from '@entities/group_users.entity';
 import { GROUP_PERMISSIONS_TYPE, ResourceType } from '@modules/group-permissions/constants';
 import { APP_TYPES } from '@modules/apps/constants';
+import { AppVersionStatus } from '@entities/app_version.entity';
 import { INSTANCE_USER_SETTINGS } from '@modules/instance-settings/constants';
 import {
   WorkflowDefinitionNode,
@@ -210,6 +211,7 @@ export const createWorkflowApplicationVersion = async (
     appId: application.id,
     definition: definition || {},
     currentEnvironmentId: developmentEnv?.id || null,
+    status: AppVersionStatus.RELEASED,
   });
 
   return await appVersionRepository.save(version);
