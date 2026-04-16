@@ -170,6 +170,13 @@ jobs:
           --health-interval 3s
           --health-timeout 3s
           --health-retries 5
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 5
     env:
       FORCE_COLOR: true
       NODE_OPTIONS: '--max-old-space-size=4096'
@@ -186,6 +193,8 @@ jobs:
       TOOLJET_DB_HOST: postgres
       TOOLJET_DB_PORT: 5432
       TOOLJET_DB: tooljet_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     steps:
       - uses: actions/checkout@v4
       - name: Checkout EE submodules
@@ -228,6 +237,13 @@ jobs:
           --health-interval 3s
           --health-timeout 3s
           --health-retries 5
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 5
     env:
       FORCE_COLOR: true
       NODE_OPTIONS: '--max-old-space-size=8192'
@@ -244,6 +260,8 @@ jobs:
       TOOLJET_DB_HOST: postgres
       TOOLJET_DB_PORT: 5432
       TOOLJET_DB: tooljet_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     steps:
       - uses: actions/checkout@v4
       - name: Checkout EE submodules
@@ -267,7 +285,7 @@ jobs:
       # schema migrations when NODE_ENV=test. Tests set NODE_ENV themselves.
       - run: NODE_ENV= npm run --prefix server db:create
       - run: NODE_ENV= npm run --prefix server db:migrate
-      - run: npm run --prefix server test:e2e -- --ci --testTimeout=20000
+      - run: npm run --prefix server test:e2e -- --testTimeout=20000
 
   test-frontend:
     runs-on: ubuntu-latest
