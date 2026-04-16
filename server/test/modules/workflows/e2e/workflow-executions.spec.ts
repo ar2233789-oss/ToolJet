@@ -5,6 +5,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { WorkflowExecution } from '../../../../src/entities/workflow_execution.entity';
+import { WorkflowExecutionsService } from '../../../../ee/workflows/services/workflow-executions.service';
 import { setupPolly } from 'setup-polly-jest';
 import * as NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import * as FSPersister from '@pollyjs/persister-fs';
@@ -52,24 +53,19 @@ const executeWorkflow = async (
   return response.body.workflowExecution;
 };
 
-const getWorkflowExecutionDetails = async (nestApp: INestApplication, executionId: string) => {
-  const defaultDataSource = nestApp.get<DataSource>(getDataSourceToken('default'));
-
-  const workflowExecution = await defaultDataSource
-    .getRepository(WorkflowExecution)
-    .findOne({ where: { id: executionId } });
-
-  if (!workflowExecution) {
-    throw new Error(`Workflow execution ${executionId} not found`);
-  }
-
-  const executionNodes = await defaultDataSource
-    .getRepository('WorkflowExecutionNode')
-    .find({ where: { workflowExecutionId: executionId } });
+const getWorkflowExecutionDetails = async (nestApp: INestApplication, executionId: string, _user?: any) => {
+  // Use the NestJS service's getStatus method instead of direct DB queries.
+  // Direct queries may go through a different pooled connection and miss
+  // updates from the execute method due to connection-level isolation.
+  const service = nestApp.get(WorkflowExecutionsService);
+  const status = await service.getStatus(executionId);
 
   return {
-    execution: workflowExecution,
-    nodes: executionNodes,
+    execution: { executed: status.status, logs: status.logs },
+    nodes: status.nodes.map((n: any) => ({
+      ...n,
+      idOnWorkflowDefinition: n.idOnDefinition,
+    })),
   };
 };
 
@@ -195,7 +191,8 @@ describe('WorkflowExecutionsController', () => {
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Debug: log execution state in CI (stderr bypasses Jest suppression)
@@ -316,7 +313,8 @@ describe('WorkflowExecutionsController', () => {
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -438,7 +436,8 @@ describe('WorkflowExecutionsController', () => {
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -609,7 +608,8 @@ describe('WorkflowExecutionsController', () => {
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -795,7 +795,8 @@ describe('WorkflowExecutionsController', () => {
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -956,7 +957,8 @@ describe('WorkflowExecutionsController', () => {
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -1102,7 +1104,8 @@ result = {"stats": stats, "config_enabled": CONFIG["enabled"]}
 
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           expect(workflowExecution.executed).toBe(true);
@@ -1210,7 +1213,8 @@ result = {"stats": stats, "config_enabled": CONFIG["enabled"]}
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -1321,7 +1325,8 @@ result = pydash.map_([1, 2, 3], lambda x: x * 2)
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -1457,7 +1462,8 @@ result = [x * multiplier for x in numbers]
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
@@ -1616,7 +1622,8 @@ result = pydash.sum_(sorted_numbers)
           // Get workflow execution details
           const { execution: workflowExecution, nodes: executionNodes } = await getWorkflowExecutionDetails(
             app,
-            execution.id
+            execution.id,
+            user
           );
 
           // Verify execution status
