@@ -198,21 +198,14 @@ describe('WorkflowExecutionsController', () => {
             execution.id
           );
 
-          // Debug: log execution state in CI
+          // Debug: log execution state in CI (stderr bypasses Jest suppression)
           if (process.env.CI) {
-            console.log('[CI DEBUG] execution response:', JSON.stringify({
-              id: execution.id,
-              appVersionId: execution.appVersionId,
-              executed: execution.executed,
-            }));
-            console.log('[CI DEBUG] workflowExecution.executed:', workflowExecution.executed);
-            console.log('[CI DEBUG] executionNodes count:', executionNodes.length);
-            if (executionNodes.length > 0) {
-              console.log('[CI DEBUG] first node:', JSON.stringify(executionNodes[0]));
-            }
-            console.log('[CI DEBUG] appVersion.id:', appVersion.id);
-            console.log('[CI DEBUG] appVersion.status:', (appVersion as any).status);
-            console.log('[CI DEBUG] appVersion.definition nodes count:', appVersion.definition?.nodes?.length);
+            const dbg = (msg: string) => process.stderr.write(`[CI-DBG] ${msg}\n`);
+            dbg(`execution.id=${execution.id} executed=${execution.executed} appVersionId=${execution.appVersionId}`);
+            dbg(`workflowExecution.executed=${workflowExecution.executed}`);
+            dbg(`executionNodes.length=${executionNodes.length}`);
+            dbg(`appVersion.id=${appVersion.id} status=${(appVersion as any).status}`);
+            dbg(`definition.nodes.length=${appVersion.definition?.nodes?.length}`);
           }
 
           // Verify execution status
