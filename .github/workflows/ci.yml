@@ -270,7 +270,28 @@ jobs:
       - run: npm run --prefix server test:e2e -- --testTimeout=60000
 
   # ---------------------------------------------------------------------------
-  # 4. Gate — aggregates results, posts PR comment, removes label
+  # 4. Cypress E2E — reusable workflows, run after server tests pass
+  # ---------------------------------------------------------------------------
+  cypress-platform:
+    needs: [detect-changes, test-server-unit, test-server-e2e]
+    if: >-
+      needs.detect-changes.outputs.server == 'true'
+      || needs.detect-changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/cypress-platform.yml
+    with:
+      edition: 'ee'
+    secrets: inherit
+
+  cypress-marketplace:
+    needs: [detect-changes, test-server-unit, test-server-e2e]
+    if: needs.detect-changes.outputs.marketplace == 'true'
+    uses: ./.github/workflows/cypress-marketplace.yml
+    with:
+      edition: 'ee'
+    secrets: inherit
+
+  # ---------------------------------------------------------------------------
+  # 5. Gate — aggregates results, posts PR comment, removes label
   # ---------------------------------------------------------------------------
   ci-gate:
     runs-on: ubuntu-latest
@@ -283,6 +304,8 @@ jobs:
       - check-marketplace
       - test-server-unit
       - test-server-e2e
+      - cypress-platform
+      - cypress-marketplace
     steps:
       - name: Evaluate results
         id: eval
@@ -307,6 +330,8 @@ jobs:
             "check-marketplace:${{ needs.check-marketplace.result }}"
             "test-server-unit:${{ needs.test-server-unit.result }}"
             "test-server-e2e:${{ needs.test-server-e2e.result }}"
+            "cypress-platform:${{ needs.cypress-platform.result }}"
+            "cypress-marketplace:${{ needs.cypress-marketplace.result }}"
           )
 
           for entry in "${results[@]}"; do
@@ -360,6 +385,10 @@ jobs:
             const unitResult = '${{ needs.test-server-unit.result }}';
             const e2eResult = '${{ needs.test-server-e2e.result }}';
 
+            // Cypress rows
+            const cypressPlatformResult = '${{ needs.cypress-platform.result }}';
+            const cypressMarketplaceResult = '${{ needs.cypress-marketplace.result }}';
+
             const verdict = '${{ steps.eval.outputs.verdict }}';
             const verdictLine = verdict === 'pass'
               ? ':white_check_mark: **All checks passed**'
@@ -373,6 +402,8 @@ jobs:
               `| **Lint & Build** | ${checkStatus} |`,
               `| **Unit Tests** | ${icon(unitResult)} ${unitResult} |`,
               `| **E2E Tests** | ${icon(e2eResult)} ${e2eResult} |`,
+              `| **Cypress — Platform** | ${icon(cypressPlatformResult)} ${cypressPlatformResult} |`,
+              `| **Cypress — Marketplace** | ${icon(cypressMarketplaceResult)} ${cypressMarketplaceResult} |`,
               '',
               verdictLine,
             ].join('\n');
