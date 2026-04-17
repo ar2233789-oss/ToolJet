@@ -47,16 +47,6 @@ const executeWorkflow = async (
     throw new Error(`Workflow execution failed: ${response.body.message || 'Unknown error'}`);
   }
 
-  // Log execution result in CI for debugging
-  if (process.env.CI && response.body.result) {
-    process.stderr.write(
-      `[CI-DBG] execution result: ${JSON.stringify({ status: response.body.result?.status, data: typeof response.body.result?.data })}\n`
-    );
-  }
-  if (process.env.CI && !response.body.result) {
-    process.stderr.write(`[CI-DBG] NO result in response body. Keys: ${Object.keys(response.body).join(',')}\n`);
-  }
-
   return response.body.workflowExecution;
 };
 
@@ -67,11 +57,6 @@ const getWorkflowExecutionDetails = async (nestApp: INestApplication, executionI
   const service = nestApp.get(WorkflowExecutionsService);
   const status = await service.getStatus(executionId);
 
-  if (process.env.CI) {
-    process.stderr.write(
-      `[CI-DBG] getStatus: executed=${status.status} nodesCount=${status.nodes.length} nodesExecuted=${status.nodes.filter((n: any) => n.executed).length}\n`
-    );
-  }
 
   return {
     execution: { executed: status.status, logs: status.logs },
