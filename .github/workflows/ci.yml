@@ -340,11 +340,11 @@ jobs:
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
             const icon = (r) => {
-              if (r === 'success')   return '✅';
-              if (r === 'skipped')   return '⏭';
-              if (r === 'failure')   return '❌';
-              if (r === 'cancelled') return '🚫';
-              return '❓';
+              if (r === 'success')   return ':white_check_mark:';
+              if (r === 'skipped')   return ':next_track_button:';
+              if (r === 'failure')   return ':x:';
+              if (r === 'cancelled') return ':no_entry_sign:';
+              return ':grey_question:';
             };
 
             // Lint & Build row — combine all check-* results inline
@@ -362,8 +362,8 @@ jobs:
 
             const verdict = '${{ steps.eval.outputs.verdict }}';
             const verdictLine = verdict === 'pass'
-              ? '✅ **All checks passed**'
-              : '❌ **Failed** — fix issues and re-add `run-ci` label';
+              ? ':white_check_mark: **All checks passed**'
+              : ':x: **Failed** — fix issues and re-add `run-ci` label';
 
             const body = [
               `### CI — [\`${sha}\`](${runUrl})`,
