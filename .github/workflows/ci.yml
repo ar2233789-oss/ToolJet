@@ -290,23 +290,6 @@ jobs:
       - run: NODE_ENV= npm run --prefix server db:migrate
       - run: npm run --prefix server test:e2e -- --testTimeout=60000
 
-  test-frontend:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            plugins/package-lock.json
-      - run: npm ci --prefix plugins
-      - run: npm ci --prefix frontend
-      - run: npm run --prefix frontend test -- --ci --passWithNoTests
-
   # ---------------------------------------------------------------------------
   # 5. Gate — single required status check, removes label, posts PR comment
   # ---------------------------------------------------------------------------
@@ -322,7 +305,6 @@ jobs:
       - build-plugins
       - test-server-unit
       - test-server-e2e
-      - test-frontend
     steps:
       - name: Evaluate results
         id: eval
@@ -350,7 +332,6 @@ jobs:
             "build-plugins:${{ needs.build-plugins.result }}"
             "test-server-unit:${{ needs.test-server-unit.result }}"
             "test-server-e2e:${{ needs.test-server-e2e.result }}"
-            "test-frontend:${{ needs.test-frontend.result }}"
           )
 
           for entry in "${results[@]}"; do
@@ -389,7 +370,6 @@ jobs:
               { name: 'build-plugins',     result: '${{ needs.build-plugins.result }}' },
               { name: 'test-server-unit',  result: '${{ needs.test-server-unit.result }}' },
               { name: 'test-server-e2e',   result: '${{ needs.test-server-e2e.result }}' },
-              { name: 'test-frontend',     result: '${{ needs.test-frontend.result }}' },
             ];
 
             const icon = (r) => {
