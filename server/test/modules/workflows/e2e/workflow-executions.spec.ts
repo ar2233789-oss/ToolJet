@@ -57,7 +57,6 @@ const getWorkflowExecutionDetails = async (nestApp: INestApplication, executionI
   const service = nestApp.get(WorkflowExecutionsService);
   const status = await service.getStatus(executionId);
 
-
   return {
     execution: { executed: status.status, logs: status.logs },
     nodes: status.nodes.map((n: any) => ({

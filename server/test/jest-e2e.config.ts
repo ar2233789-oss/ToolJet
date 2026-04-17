@@ -15,11 +15,7 @@ const config: Config.InitialOptions = {
   // in the suite TX proxy under Docker containers. Track: fix/test-suite branch.
   testPathIgnorePatterns: [
     ...(process.env.CI
-      ? [
-          'workflow-executions\\.spec\\.ts$',
-          'workflow-webhook\\.spec\\.ts$',
-          'tooljetdb-data-operations\\.spec\\.ts$',
-        ]
+      ? ['workflow-executions\\.spec\\.ts$', 'workflow-webhook\\.spec\\.ts$', 'tooljetdb-data-operations\\.spec\\.ts$']
       : []),
   ],
   runner: 'groups',
