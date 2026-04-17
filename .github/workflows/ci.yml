@@ -46,56 +46,16 @@ jobs:
               - 'marketplace/**'
 
   # ---------------------------------------------------------------------------
-  # 2. Check jobs — lint + build per folder (parallel)
+  # 2. Build-check jobs — lint + build per folder
+  #    Plugins runs first (produces artifact), then server + frontend in parallel
   # ---------------------------------------------------------------------------
-  check-server:
-    runs-on: ubuntu-latest
-    needs: [detect-changes, check-plugins]
-    if: needs.detect-changes.outputs.server == 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Checkout EE submodules
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config --global url."https://x-access-token:${{ secrets.CUSTOM_GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git submodule update --init --recursive
-      - uses: actions/download-artifact@v4
-        with:
-          name: plugins-dist
-          path: plugins/
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: 'server/package-lock.json'
-      - run: npm ci --prefix server
-      - run: npm run --prefix server lint
-      - run: npm run --prefix server build
-
-  check-frontend:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            plugins/package-lock.json
-      - run: npm ci --prefix plugins
-      - run: npm ci --prefix frontend
-      - run: npm run --prefix frontend lint
-      - run: npm run --prefix frontend build
-
-  check-plugins:
+  build-check-plugins:
     runs-on: ubuntu-latest
     needs: detect-changes
     if: >-
       needs.detect-changes.outputs.server == 'true'
       || needs.detect-changes.outputs.plugins == 'true'
+      || needs.detect-changes.outputs.frontend == 'true'
     steps:
       - uses: actions/checkout@v4
       - name: Checkout EE submodules
@@ -124,7 +84,50 @@ jobs:
           compression-level: 1
           retention-days: 1
 
-  check-marketplace:
+  build-check-server:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-check-plugins]
+    if: needs.detect-changes.outputs.server == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout EE submodules
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global url."https://x-access-token:${{ secrets.CUSTOM_GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git submodule update --init --recursive
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugins-dist
+          path: plugins/
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'server/package-lock.json'
+      - run: npm ci --prefix server
+      - run: npm run --prefix server lint
+      - run: npm run --prefix server build
+
+  build-check-frontend:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-check-plugins]
+    if: needs.detect-changes.outputs.frontend == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugins-dist
+          path: plugins/
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      - run: npm ci --prefix frontend
+      - run: npm run --prefix frontend lint
+      - run: npm run --prefix frontend build
+
+  build-check-marketplace:
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.marketplace == 'true'
@@ -145,7 +148,7 @@ jobs:
   test-server-unit:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [detect-changes, check-plugins]
+    needs: [detect-changes, build-check-plugins]
     if: needs.detect-changes.outputs.server == 'true'
     container: node:22.15.1-bullseye
     services:
@@ -209,7 +212,7 @@ jobs:
   test-server-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [detect-changes, check-plugins]
+    needs: [detect-changes, build-check-plugins]
     if: needs.detect-changes.outputs.server == 'true'
     container: node:22.15.1-bullseye
     services:
@@ -302,10 +305,10 @@ jobs:
     if: always()
     needs:
       - detect-changes
-      - check-server
-      - check-frontend
-      - check-plugins
-      - check-marketplace
+      - build-check-server
+      - build-check-frontend
+      - build-check-plugins
+      - build-check-marketplace
       - test-server-unit
       - test-server-e2e
       - cypress-platform
@@ -328,10 +331,10 @@ jobs:
 
           failed=false
           results=(
-            "check-server:${{ needs.check-server.result }}"
-            "check-frontend:${{ needs.check-frontend.result }}"
-            "check-plugins:${{ needs.check-plugins.result }}"
-            "check-marketplace:${{ needs.check-marketplace.result }}"
+            "build-check-server:${{ needs.build-check-server.result }}"
+            "build-check-frontend:${{ needs.build-check-frontend.result }}"
+            "build-check-plugins:${{ needs.build-check-plugins.result }}"
+            "build-check-marketplace:${{ needs.build-check-marketplace.result }}"
             "test-server-unit:${{ needs.test-server-unit.result }}"
             "test-server-e2e:${{ needs.test-server-e2e.result }}"
             "cypress-platform:${{ needs.cypress-platform.result }}"
@@ -376,12 +379,12 @@ jobs:
               return ':grey_question:';
             };
 
-            // Lint & Build row — combine all check-* results inline
+            // Lint & Build row — combine all build-check-* results inline
             const checks = [
-              { name: 'server',      result: '${{ needs.check-server.result }}' },
-              { name: 'plugins',     result: '${{ needs.check-plugins.result }}' },
-              { name: 'frontend',    result: '${{ needs.check-frontend.result }}' },
-              { name: 'marketplace', result: '${{ needs.check-marketplace.result }}' },
+              { name: 'server',      result: '${{ needs.build-check-server.result }}' },
+              { name: 'plugins',     result: '${{ needs.build-check-plugins.result }}' },
+              { name: 'frontend',    result: '${{ needs.build-check-frontend.result }}' },
+              { name: 'marketplace', result: '${{ needs.build-check-marketplace.result }}' },
             ];
             const checkStatus = checks.map(c => `${icon(c.result)} ${c.name}`).join(' · ');
 
