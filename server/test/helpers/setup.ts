@@ -336,7 +336,7 @@ const ENTERPRISE_TEST_TERMS: Partial<Terms> = {
   observability: { enabled: true },
   workflows: {
     enabled: true,
-    execution_timeout: 0,
+    execution_timeout: 60,
     workspace: { total: 'UNLIMITED', daily_executions: 'UNLIMITED', monthly_executions: 'UNLIMITED' },
     instance: { total: 'UNLIMITED', daily_executions: 'UNLIMITED', monthly_executions: 'UNLIMITED' },
   },

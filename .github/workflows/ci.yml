@@ -262,6 +262,9 @@ jobs:
       TOOLJET_DB: tooljet_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      WORKFLOW_TIMEOUT_SECONDS: '60'
+      PGRST_JWT_SECRET: 'r9iMKoe5CRMgvJBBtp4HrqN7QiPpUToj'
+      ENABLE_TOOLJET_DB: 'true'
     steps:
       - uses: actions/checkout@v4
       - name: Checkout EE submodules
